@@ -14,19 +14,19 @@
 !!!!!!! format_cycle        -> suffix format in the cycle name
 !!!!!!! hdf5_num_mod_output -> number of cycles per HDF5 file
 !!!!!!! change_names        -> whether you want to change the name of some quantities,
-!!!!!!!			       for instance 'star_mass' into 'stellar_mass'.
-!!!!!!!			       See subroutines change_history_names and change_profile_names
+!!!!!!!                        for instance 'star_mass' into 'stellar_mass'.
+!!!!!!!                        See subroutines change_history_names and change_profile_names
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      ! If left as empty strings, these parameters will take default values 
+      ! If left as empty strings, these parameters will take default values
       ! determined at runtime (see header).
       character (len=256) :: hdf5_prefix  = ''
       character (len=256) :: hdf5_codev   = ''
       character(len=256), parameter :: hdf5_modname      = 'HDF5'
       character(len=256), parameter :: hdf5_profile_list = 'hdf5_profile_columns.list'
 
-      character(len=*), parameter :: head_cycle_name     = 'cycle' 
+      character(len=*), parameter :: head_cycle_name     = 'cycle'
       character(len=*), parameter :: dataset_cycle_name  = 'SE_DATASET'
       character(len=*), parameter :: dataset_cycle_name2 = 'ISO_MASSF'
 
