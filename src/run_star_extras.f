@@ -25,7 +25,7 @@
       use star_lib
       use star_def
       use const_def
-      use crlibm_lib
+      use math_lib
       use chem_def
       use run_star_support, only: failed
       use utils_lib, only: utils_OMP_GET_MAX_THREADS
@@ -92,7 +92,7 @@
       ! None of the following functions are called unless you set their
       ! function point in extras_control.
 
-      integer function extras_startup(id, restart, ierr)
+      subroutine extras_startup(id, restart, ierr)
         integer, intent(in) :: id
         logical, intent(in) :: restart
         integer, intent(out) :: ierr
@@ -110,7 +110,7 @@
 
         call star_ptr(id, s, ierr)
         if (ierr /= 0) return
-        extras_startup = 0
+        !extras_startup = 0
         if (.not. restart) then
            call alloc_extra_info(s)
         else ! it is a restart
@@ -146,20 +146,20 @@
         call system("mkdir -p "//hdf5_modname)
 
         ! Get names and values for history
-        call get_data_for_history_columns(s, id_extra, ierr)
+        call get_data_for_history_columns(s, ierr)
         num_history_columns = s% number_of_history_columns
 
         ! Get names and values for profiles
         ! We do not use the same for the profiles files and the HDF5
         ! HDF5 profiles are a subset of the profiles files
-        num_profile_columns_logs = num_standard_profile_columns(s) + how_many_extra_profile_columns(id, id_extra)
+        num_profile_columns_logs = num_standard_profile_columns(s) + how_many_extra_profile_columns(id)
         allocate(                                               &
              profile_names_logs(num_profile_columns_logs),      &
              profile_vals_logs(s% nz,num_profile_columns_logs), &
              profile_is_int_logs(num_profile_columns_logs),     &
              stat=ierr)
 
-        call get_data_for_profile_columns(s, id_extra, s% nz, &
+        call get_data_for_profile_columns(s , s% nz, &
          profile_names_logs, profile_vals_logs, profile_is_int_logs,ierr)
 
         ! Parse the hdf5_profile_columns.list to get number of HDF5 profiles
@@ -210,7 +210,7 @@
         ! Deallocate only profile_vals (because nz changes during the evolution)
         deallocate(profile_vals)
 
-      end function extras_startup
+      end subroutine extras_startup
 
       subroutine get_profile_index(index, index_logs, ierr)
 
@@ -232,10 +232,10 @@
 
       end subroutine get_profile_index
 
-      subroutine get_data_for_profile_columns_hfd5(s, id_extra, nz, ierr)
+      subroutine get_data_for_profile_columns_hfd5(s, nz, ierr)
 
         type (star_info), pointer :: s
-        integer, intent(in) :: id_extra, nz
+        integer, intent(in) :: nz
         integer, intent(out) :: ierr
 
         integer i, j, index
@@ -243,7 +243,7 @@
         ierr = 0
 
         ! Call for the logs
-        call get_data_for_profile_columns(s, id_extra, nz, &
+        call get_data_for_profile_columns(s, nz, &
             profile_names_logs, profile_vals_logs, profile_is_int_logs, ierr)
         if (ierr /= 0) return
 
@@ -289,8 +289,8 @@
       end function extras_check_model
 
 
-      integer function how_many_extra_history_columns(id, id_extra)
-        integer, intent(in) :: id, id_extra
+      integer function how_many_extra_history_columns(id)
+        integer, intent(in) :: id
         integer :: ierr
         type (star_info), pointer :: s
         ierr = 0
@@ -300,8 +300,8 @@
       end function how_many_extra_history_columns
 
 
-      subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
-        integer, intent(in) :: id, id_extra, n
+      subroutine data_for_extra_history_columns(id, n, names, vals, ierr)
+        integer, intent(in) :: id, n
         character (len=maxlen_history_column_name) :: names(n)
         real(dp) :: vals(n)
         integer, intent(out) :: ierr
@@ -323,9 +323,9 @@
       end subroutine data_for_extra_history_columns
 
 
-      integer function how_many_extra_profile_columns(id, id_extra)
+      integer function how_many_extra_profile_columns(id)
         use star_def, only: star_info
-        integer, intent(in) :: id, id_extra
+        integer, intent(in) :: id
         integer :: ierr
         type (star_info), pointer :: s
         ierr = 0
@@ -335,10 +335,10 @@
       end function how_many_extra_profile_columns
 
 
-      subroutine data_for_extra_profile_columns(id, id_extra, n, nz, names, vals, ierr)
+      subroutine data_for_extra_profile_columns(id, n, nz, names, vals, ierr)
         use star_def, only: star_info, maxlen_profile_column_name
         use const_def, only: dp
-        integer, intent(in) :: id, id_extra, n, nz
+        integer, intent(in) :: id, n, nz
         character (len=maxlen_profile_column_name) :: names(n)
         real(dp) :: vals(nz,n)
         integer, intent(out) :: ierr
@@ -363,7 +363,7 @@
         names(2) = 'rho'
         names(3) = 'dcoeff'
         do k = 1, nz
-          vals(k,1) = s% mstar * s% dq(k) / msol
+          vals(k,1) = s% mstar * s% dq(k) / Msun
           vals(k,2) = s% rho(k)
           vals(k,3) = s% D_mix(k)
         end do
@@ -373,8 +373,8 @@
 
       ! returns either keep_going or terminate.
       ! note: cannot request retry or backup; extras_check_model can do that.
-      integer function extras_finish_step(id, id_extra)
-        integer, intent(in) :: id, id_extra
+      integer function extras_finish_step(id)
+        integer, intent(in) :: id
         integer :: ierr
         integer :: ios, line
         character(len=100) :: buffer
@@ -392,12 +392,13 @@
            ! s% need_to_update_history_now = .true.
 
         ! Get names and values for history
-        call get_data_for_history_columns(s, id_extra, ierr)
+        !call get_data_for_history_columns(s, id_extra, ierr)
+        call get_data_for_history_columns(s, ierr)
 
         allocate(profile_vals_logs(s% nz,num_profile_columns_logs), &
                  profile_vals(s% nz,num_profile_columns),           &
                  stat=ierr)
-        call get_data_for_profile_columns_hfd5(s, id_extra, s% nz, ierr)
+        call get_data_for_profile_columns_hfd5(s, s% nz, ierr)
 
         ! Main function call
         call hdf5_finish_step(s, change_names,                                                       &
